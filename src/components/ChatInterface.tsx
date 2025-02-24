@@ -15,9 +15,11 @@ interface ChatInterfaceProps {
 }
 
 export default function ChatInterface({ userDetails }: ChatInterfaceProps) {
+  const [isInitialized, setIsInitialized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
@@ -25,27 +27,31 @@ export default function ChatInterface({ userDetails }: ChatInterfaceProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    // Initial greeting
-    const initialMessages: Message[] = [
-      {
-        id: '1',
-        type: 'text',
-        content: `Hey ${userDetails.name}! 👋 Welcome to our AI assistant! 🤖 Simply type your question - I'm as smart as ChatGPT and should be able to help :)`,
-        sender: 'bot',
-        timestamp: new Date()
-      },
-      {
-        id: '2',
-        type: 'text',
-        content: 'You can try asking:',
-        sender: 'bot',
-        timestamp: new Date()
-      }
-    ];
+  const sampleQuestions = [
+    "Who are your doctors?",
+    "What are your services?",
+    "Where is the clinic?",
+    "How do I book a session?"
+  ];
 
-    setMessages(initialMessages);
-  }, [userDetails.name]);
+  useEffect(() => {
+    if (!isInitialized) {
+      // Initial greeting with stable timestamp
+      const timestamp = new Date().toISOString();
+      const initialMessages: Message[] = [
+        {
+          id: '1',
+          type: 'text',
+          content: `Hey there! 👋 Welcome to our AI assistant! 🤖 Simply type - I'm as smart as ChatGPT and should be able to help :)`,
+          sender: 'bot',
+          timestamp: new Date(timestamp)
+        }
+      ];
+
+      setMessages(initialMessages);
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
 
   useEffect(() => {
     scrollToBottom();
@@ -62,27 +68,38 @@ export default function ChatInterface({ userDetails }: ChatInterfaceProps) {
     setMessages(prev => [...prev, newMessage]);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+  const handleSampleQuestionClick = (question: string) => {
+    setInputValue(question);
+    handleSendMessage(question);
+  };
 
-    const userMessage = inputValue.trim();
+  const handleSendMessage = async (messageText?: string) => {
+    const message = messageText || inputValue.trim();
+    if (!message) return;
+
     setInputValue('');
-    addMessage(userMessage);
+    addMessage(message);
+    setHasInteracted(true);
 
-    // Add to chat history
-    const newHistory = [...chatHistory, { role: 'user', content: userMessage }];
+    const newHistory: ChatMessage[] = [
+      ...chatHistory, 
+      { role: 'user' as const, content: message }
+    ];
     setChatHistory(newHistory);
 
     setIsTyping(true);
 
     try {
-      const { isBookingRequest, response } = await analyzeIntent(userMessage, chatHistory);
+      const { isBookingRequest, response } = await analyzeIntent(message, chatHistory);
 
       if (isBookingRequest) {
         addMessage('Please fill out the booking form:', 'booking-form', 'bot');
       } else {
         addMessage(response, 'text', 'bot');
-        setChatHistory([...newHistory, { role: 'assistant', content: response }]);
+        setChatHistory([
+          ...newHistory, 
+          { role: 'assistant' as const, content: response }
+        ]);
       }
     } catch (error) {
       console.error('Error processing message:', error);
@@ -114,40 +131,77 @@ export default function ChatInterface({ userDetails }: ChatInterfaceProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`mb-4 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}
-          >
-            <div
-              className={`
-                inline-block max-w-[80%] rounded-lg p-3
-                ${message.sender === 'user' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-900'}
-              `}
-            >
-              {message.type === 'booking-form' ? (
-                <BookingForm onSubmit={handleBookingSubmit} />
-              ) : (
-                <div className="whitespace-pre-wrap">{message.content}</div>
-              )}
-            </div>
+      {isInitialized && (
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Welcome Message */}
+          <div className="mb-8 text-s text-gray-800">
+            Hey there! 👋 Welcome to our AI assistant! 🤖 Simply type - I'm as smart as ChatGPT and should be able to help :)
           </div>
-        ))}
-        
-        {isTyping && (
-          <div className="flex gap-2 text-gray-500">
-            <div className="animate-bounce">.</div>
-            <div className="animate-bounce delay-100">.</div>
-            <div className="animate-bounce delay-200">.</div>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
-      </div>
 
+          {/* Sample Questions - Only show if no interaction yet */}
+          {!hasInteracted && (
+            <div className="flex flex-col gap-2 my-4">
+              {sampleQuestions.map((question, index) => (
+                <button
+                  key={`question-${index}`}
+                  onClick={() => handleSampleQuestionClick(question)}
+                  className="text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-700 transition-colors flex items-center justify-between group"
+                >
+                  <span>{question}</span>
+                  <svg 
+                    className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transform rotate-45"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
+                    />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Chat Messages */}
+          {messages.slice(1).map((message) => (
+            <div
+              key={`${message.id}-${message.timestamp.toISOString()}`}
+              className={`mb-4 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}
+            >
+              <div
+                className={`
+                  inline-block max-w-[80%] rounded-lg p-3
+                  ${message.sender === 'user' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-100 text-gray-900'}
+                `}
+              >
+                {message.type === 'booking-form' ? (
+                  <BookingForm onSubmit={handleBookingSubmit} />
+                ) : (
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                )}
+              </div>
+            </div>
+          ))}
+          
+          {isTyping && (
+            <div className="flex gap-2 text-gray-500">
+              <div className="animate-bounce">.</div>
+              <div className="animate-bounce delay-100">.</div>
+              <div className="animate-bounce delay-200">.</div>
+            </div>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
+      )}
+
+      {/* Input Area */}
       <div className="border-t p-4">
         <div className="flex gap-2">
           <input
@@ -155,11 +209,11 @@ export default function ChatInterface({ userDetails }: ChatInterfaceProps) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Type your message..."
+            placeholder="Type a message..."
             className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <button
-            onClick={handleSendMessage}
+            onClick={() => handleSendMessage()}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
           >
             Send
