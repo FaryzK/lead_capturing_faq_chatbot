@@ -14,6 +14,16 @@ interface ChatInterfaceProps {
   };
 }
 
+function TypingIndicator() {
+  return (
+    <div className="flex items-center space-x-2 p-3 bg-gray-100 rounded-2xl w-16">
+      <div className="w-2 h-2 bg-gray-400 rounded-full animate-typing-1"></div>
+      <div className="w-2 h-2 bg-gray-400 rounded-full animate-typing-2"></div>
+      <div className="w-2 h-2 bg-gray-400 rounded-full animate-typing-3"></div>
+    </div>
+  );
+}
+
 export default function ChatInterface({ userDetails }: ChatInterfaceProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -172,28 +182,28 @@ export default function ChatInterface({ userDetails }: ChatInterfaceProps) {
               key={`${message.id}-${message.timestamp.toISOString()}`}
               className={`mb-4 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}
             >
-              <div
-                className={`
-                  inline-block max-w-[80%] rounded-lg p-3
-                  ${message.sender === 'user' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-900'}
-                `}
-              >
-                {message.type === 'booking-form' ? (
+              {message.type === 'booking-form' ? (
+                <div className="w-full">
                   <BookingForm onSubmit={handleBookingSubmit} />
-                ) : (
+                </div>
+              ) : (
+                <div
+                  className={`
+                    inline-block max-w-[80%] rounded-lg p-3
+                    ${message.sender === 'user' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-900'}
+                  `}
+                >
                   <div className="whitespace-pre-wrap">{message.content}</div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ))}
           
           {isTyping && (
-            <div className="flex gap-2 text-gray-500">
-              <div className="animate-bounce">.</div>
-              <div className="animate-bounce delay-100">.</div>
-              <div className="animate-bounce delay-200">.</div>
+            <div className="mb-4">
+              <TypingIndicator />
             </div>
           )}
           

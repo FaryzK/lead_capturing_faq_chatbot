@@ -21,22 +21,22 @@ export default function ChatWidget() {
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <div className={`
-        bg-white rounded-lg shadow-lg
-        ${isExpanded ? 'w-96 h-[600px]' : 'w-40 h-12'}
-        transition-all duration-300 ease-in-out
+        bg-white rounded-[20px] shadow-2xl transition-all duration-300 ease-in-out
+        ${isExpanded ? 'w-[480px] h-[600px]' : 'w-auto h-auto'}
       `}>
         {!isExpanded ? (
           <button 
             onClick={() => setIsExpanded(true)}
-            className="w-full h-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            className="flex items-center gap-2 bg-[#1e2937] text-white px-6 py-3 rounded-[20px] hover:bg-[#2d3748] transition-all"
           >
-            Chat with us
+            <span>Chat with us</span>
+            <span className="text-xl">✨</span>
           </button>
         ) : (
           <div className="flex flex-col h-full">
             <ChatHeader onClose={() => setIsExpanded(false)} />
             
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto">
               {currentFlow === 'menu' && (
                 <ChatMenu onSelect={(flow: 'emergency' | 'general') => setCurrentFlow(flow)} />
               )}
